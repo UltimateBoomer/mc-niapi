@@ -1,125 +1,236 @@
 package io.github.ultimateboomer.niapi;
 
 import net.minecraft.client.texture.NativeImage;
-import org.lwjgl.stb.STBImage;
 import org.lwjgl.stb.STBImageResize;
 import org.lwjgl.system.MemoryUtil;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+
+/**
+ * Util class for NativeImage manipulation.
+ */
 public final class NativeImageUtil {
     /**
-     * Scale NativeImage using {@link STBImageResize}.
+     * Create a new NativeImage that is scaled using {@link STBImageResize}.
+     * The original image will not be closed.
      *
      * @param image input image
      * @param mul multiplier
+     * @return scaled image
      */
-    public static void scaleImage(NativeImage image, double mul) {
-        scaleImage(image, mul, mul);
+    public static NativeImage scaleImage(NativeImage image, double mul) {
+        return scaleImage(image, mul, mul);
     }
 
     /**
-     * Scale NativeImage using {@link STBImageResize}.
+     * Create a new NativeImage that is scaled using {@link STBImageResize}.
+     * The original image will not be closed.
      *
      * @param image input image
      * @param widthMul width multiplier
      * @param heightMul height multiplier
+     * @return scaled image
      */
-    public static void scaleImage(NativeImage image, double widthMul, double heightMul) {
+    public static NativeImage scaleImage(NativeImage image, double widthMul, double heightMul) {
         if (widthMul == 1.0 && heightMul == 1.0) {
-            return;
+            return cloneImage(image);
         }
 
-        // Prepare new image attributes
-        int newWidth = (int) (image.width * widthMul);
-        int newHeight = (int) (image.height * heightMul);
-        long newSize = (long) newWidth * newHeight * image.getFormat().getChannelCount();
-        long newPointer = MemoryUtil.nmemAlloc(newSize);;
+        // Prepare new image
+        NativeImage newImage = new NativeImage(image.getFormat(), (int) (image.getWidth() * widthMul),
+                (int) (image.getHeight() * heightMul), image.isStbImage);
+//        int newWidth = (int) ();
+//        int newHeight = (int) ();
+//        long newSize = (long) newWidth * newHeight * image.getFormat().getChannelCount();
 
         // Upscale with STBImageResize
-        STBImageResize.nstbir_resize_uint8(image.pointer, image.getWidth(), image.getHeight(), 0, newPointer,
-                newWidth, newHeight, 0, image.getFormat().getChannelCount());
+        STBImageResize.nstbir_resize_uint8(image.pointer, image.getWidth(), image.getHeight(), 0,
+                newImage.pointer, newImage.getWidth(), newImage.getHeight(), 0,
+                image.getFormat().getChannelCount());
 
-        // Free old pointer
-        if (image.isStbImage) {
-            STBImage.nstbi_image_free(image.pointer);
-        } else {
-            MemoryUtil.nmemFree(image.pointer);
-        }
-
-        // Update attributes
-        image.pointer = newPointer;
-        image.width = newWidth;
-        image.height = newHeight;
-        image.sizeBytes = newSize;
+        return newImage;
     }
 
     /**
-     * Scale NativeImage using nearest neighbor interpolation.
+     * Create a new NativeImage that is scaling using nearest neighbor interpolation.
+     * The original image will not be closed.
      *
      * @param image input image
      * @param mul multiplier
+     * @return scaled image
      */
-    public static void scaleImageNearest(NativeImage image, double mul) {
-        scaleImageNearest(image, mul, mul);
+    public static NativeImage scaleImageNearest(NativeImage image, double mul) {
+        return scaleImageNearest(image, mul, mul);
     }
 
     /**
-     * Scale NativeImage using nearest neighbor interpolation.
+     * Create a new NativeImage that is scaling using nearest neighbor interpolation.
+     * The original image will not be closed.
      *
      * @param image input image
      * @param widthMul width multiplier
      * @param heightMul height multiplier
+     * @return scaled image
      */
-    public static void scaleImageNearest(NativeImage image, double widthMul, double heightMul) {
+    public static NativeImage scaleImageNearest(NativeImage image, double widthMul, double heightMul) {
         if (widthMul == 1.0 && heightMul == 1.0) {
-            return;
+            return cloneImage(image);
         }
 
         // Make copy of original image
-        NativeImage copy = copyImage(image);
+        NativeImage newImage = new NativeImage(image.getFormat(), (int) (image.width * widthMul),
+                (int) (image.height * heightMul), image.isStbImage);
 
         // Update image attributes
-        image.width *= widthMul;
-        image.height *= heightMul;
-        image.sizeBytes = (long) image.getWidth() * image.getHeight() * image.getFormat().getChannelCount();
-        image.pointer = MemoryUtil.nmemAlloc(image.sizeBytes);
+//        image.width *= widthMul;
+//        image.height *= heightMul;
+//        image.sizeBytes = (long) image.getWidth() * image.getHeight() * image.getFormat().getChannelCount();
+//        image.pointer = MemoryUtil.nmemAlloc(image.sizeBytes);
 
-        if (image.getWidth() * image.getHeight() > copy.getWidth() * copy.getHeight()) {
+        if (image.getWidth() * image.getHeight() > newImage.getWidth() * newImage.getHeight()) {
             // Scaled image is larger than original image
-            for (int x = 0; x < copy.getWidth(); ++x) {
-                for (int y = 0; y < copy.getHeight(); ++y) {
+            for (int x = 0; x < image.getWidth(); ++x) {
+                for (int y = 0; y < image.getHeight(); ++y) {
                     for (int x1 = (int) (x * widthMul); x1 < (x + 1) * widthMul; ++x1) {
                         for (int y1 = (int) (y * heightMul); y1 < (y + 1) * heightMul; ++y1) {
-                            image.setPixelColor(x1, y1, copy.getPixelColor(x, y));
+                            newImage.setPixelColor(x1, y1, image.getPixelColor(x, y));
                         }
                     }
                 }
             }
         } else {
             // Scaled image is smaller than original image
-            for (int x = 0; x < image.getWidth(); ++x) {
-                for (int y = 0; y < image.getHeight(); ++y) {
-                    image.setPixelColor(x, y, copy.getPixelColor((int) (x / widthMul), (int) (y / heightMul)));
+            for (int x = 0; x < newImage.getWidth(); ++x) {
+                for (int y = 0; y < newImage.getHeight(); ++y) {
+                    newImage.setPixelColor(x, y, image.getPixelColor((int) (x / widthMul), (int) (y / heightMul)));
                 }
             }
         }
 
-        // Free old pointer
-        copy.close();
+        return newImage;
     }
 
     /**
-     * Replace the contents of the image with the other image, tiling if needed.
+     * Create a new NativeImage that is scaled using linear interpolation.
+     * This produces a slightly different result than {@link #scaleImage(NativeImage, double, double)}.
+     * For transparency, the least transparent pixel will be used.
+     * The original image will not be closed.
+     *
+     * @param image input image
+     * @param mul multiplier
+     * @return scaled image
+     */
+    public static NativeImage scaleImageLinear(NativeImage image, double mul) {
+        return scaleImageLinear(image, mul, mul);
+    }
+
+    /**
+     * Create a new NativeImage that is scaled using linear interpolation.
+     * This produces a slightly different result than {@link #scaleImage(NativeImage, double, double)}.
+     * For transparency, the the least transparent pixel will be used.
+     * The original image will not be closed.
+     *
+     * @param image input image
+     * @param widthMul width multiplier
+     * @param heightMul height multiplier
+     * @return scaled image
+     */
+    public static NativeImage scaleImageLinear(NativeImage image, double widthMul, double heightMul) {
+        if (widthMul == 1.0 && heightMul == 1.0) {
+            return cloneImage(image);
+        }
+
+        // Make copy of original image
+        NativeImage newImage = new NativeImage(image.getFormat(), (int) (image.width * widthMul),
+                (int) (image.height * heightMul), image.isStbImage);
+
+        int channels = image.getFormat().getChannelCount();
+        int alphaChannel = image.getFormat().getAlphaChannelOffset() / 8;
+        boolean hasAlphaChannel = alphaChannel < channels;
+
+        if (newImage.getWidth() * newImage.getHeight() > image.getWidth() * image.getHeight()) {
+            // Scaled image is larger than original image
+            // Temporary solution with STBImageResize
+            STBImageResize.nstbir_resize_uint8(image.pointer, image.getWidth(), image.getHeight(), 0,
+                    newImage.pointer, newImage.getWidth(), newImage.getHeight(), 0,
+                    image.getFormat().getChannelCount());
+//            int[][] array = toArray(image);
+//
+//            for (int x = 0; x < image.getWidth(); ++x) {
+//                for (int y = 0; y < image.getHeight(); ++y) {
+//                    for (int x1 = (int) (x * widthMul); x1 < (x + 1) * widthMul; ++x1) {
+//                        for (int y1 = (int) (y * heightMul); y1 < (y + 1) * heightMul; ++y1) {
+//                            newImage.setPixelColor(x1, y1, image.getPixelColor(x, y));
+//                        }
+//                    }
+//                }
+//            }
+        } else {
+            // Scaled image is smaller than original image
+            ByteBuffer buffer = ByteBuffer.allocate(channels);
+            buffer.order(ByteOrder.LITTLE_ENDIAN);
+            for (int x = 0; x < newImage.getWidth(); ++x) {
+                for (int y = 0; y < newImage.getHeight(); ++y) {
+                    int i = 0;
+                    int[] totalColor = new int[channels];
+
+                    for (int x1 = (int) (x / widthMul); x1 < (x + 1) / widthMul; ++x1) {
+                        for (int y1 = (int) (y / heightMul); y1 < (y + 1) / heightMul; ++y1) {
+                            buffer.putInt(image.getPixelColor(x1, y1));
+
+                            if (hasAlphaChannel && buffer.get(alphaChannel) == 0) {
+                                buffer.clear();
+                                continue;
+                            }
+
+                            for (int j = 0; j < channels; ++j) {
+                                if (j == alphaChannel) {
+                                    totalColor[j] = Math.max(Byte.toUnsignedInt(buffer.get(j)), totalColor[j]);
+                                } else {
+                                    int c = Byte.toUnsignedInt(buffer.get(j));
+                                    totalColor[j] += c * c;
+                                }
+                            }
+
+                            ++i;
+                            buffer.clear();
+                        }
+                    }
+
+                    if (i > 0) {
+                        for (int j = 0; j < 4; ++j) {
+                            if (j == alphaChannel) {
+                                buffer.put((byte) totalColor[j]);
+                            } else if (j < totalColor.length) {
+                                buffer.put((byte) (Math.sqrt((double) totalColor[j] / i)));
+                            } else {
+                                buffer.put((byte) 0);
+                            }
+                        }
+                        buffer.flip();
+                        newImage.setPixelColor(x, y, buffer.getInt());
+                        buffer.clear();
+                    }
+                }
+            }
+        }
+        return newImage;
+    }
+
+    /**
+     * Replace the contents of the image with the other image.
      *
      * @param image target image
      * @param replacer replacer image
-     * @param keepTransparency whether to keep original transparency
+     * @param keepTransparency whether to use original transparency for masking
      */
     public static void replaceImage(NativeImage image, NativeImage replacer, boolean keepTransparency) {
         for (int x = 0; x < image.getWidth(); ++x) {
             for (int y = 0; y < image.getHeight(); ++y) {
                 int color = replacer.getPixelColor(x % replacer.getWidth(), y % replacer.getHeight());
                 if (keepTransparency) {
-                    color &= 0xFFFFFF;
+                    color &= 0x00FFFFFF;
                     color += image.getPixelOpacity(x, y) << 24;
                 }
                 image.setPixelColor(x, y, color);
@@ -128,24 +239,76 @@ public final class NativeImageUtil {
     }
 
     /**
-     * Clone the NativeImage object (a new pointer is created).
+     * Clone the NativeImage object and its contents. A new pointer will be created.
      *
-     * @param image
+     * @param image input
      * @return cloned image
      */
     public static NativeImage cloneImage(NativeImage image) {
-        long newPointer = MemoryUtil.nmemAlloc(image.sizeBytes);
-        MemoryUtil.memCopy(image.pointer, newPointer, image.sizeBytes);
-        return new NativeImage(image.getFormat(), image.getWidth(), image.getHeight(), image.isStbImage, newPointer);
+        NativeImage newImage = new NativeImage(image.getFormat(), image.getWidth(), image.getHeight(),
+                image.isStbImage);
+        MemoryUtil.memCopy(image.pointer, newImage.pointer, image.sizeBytes);
+        return newImage;
     }
 
     /**
-     * Make a copy of the NativeImage object with the same pointer
+     * Create an int[][] array representing the pixels of the NativeImage.
      *
-     * @param image
-     * @return copied image
+     * @param image input
+     * @return array
      */
-    public static NativeImage copyImage(NativeImage image) {
-        return new NativeImage(image.getFormat(), image.getWidth(), image.getHeight(), image.isStbImage, image.pointer);
+    public static int[][] toArray(NativeImage image) {
+        image.checkAllocated();
+
+        int width = image.getWidth();
+        int height = image.getHeight();
+        int channels = image.getFormat().getChannelCount();
+
+        int[][] array = new int[width][height];
+        ByteBuffer buffer = ByteBuffer.allocate(channels);
+        for (int x = 0; x < width; ++x) {
+            for (int y = 0; y < height; ++y) {
+                int offset = (x + y * image.width) * channels;
+
+                for (int i = 0; i < channels; ++i) {
+                    buffer.put(MemoryUtil.memGetByte(image.pointer + offset + i));
+                }
+
+                array[x][y] = buffer.getInt();
+                buffer.clear();
+            }
+        }
+
+        return array;
+    }
+
+    /**
+     * Write color array to image. Supports any format.
+     *
+     * @param image input
+     * @param array color array, must have same width and height as input
+     */
+    public static void writeArrayToImage(NativeImage image, int[][] array) {
+        int width = image.getWidth();
+        int height = image.getHeight();
+        int channels = image.getFormat().getChannelCount();
+
+        if (array.length != width || array[0].length != height) {
+            throw new IllegalArgumentException("Dimensions of array and image does not match");
+        }
+
+        ByteBuffer buffer = ByteBuffer.allocate(channels);
+        for (int x = 0; x < width; ++x) {
+            for (int y = 0; y < height; ++y) {
+                buffer.putInt(array[x][y]);
+                int offset = (x + y * image.width) * channels;
+
+                for (int i = 0; i < channels; ++i) {
+                    MemoryUtil.memPutByte(image.pointer + offset + i, buffer.get(i));
+                }
+
+                buffer.clear();
+            }
+        }
     }
 }

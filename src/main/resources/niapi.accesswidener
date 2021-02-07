@@ -1,7 +1,7 @@
 accessWidener v1 named
 
 accessible method net/minecraft/client/texture/NativeImage$GLFormat getGlConstant ()I
-accessible method net/minecraft/client/texture/NativeImage <init> (Lnet/minecraft/client/texture/NativeImage$Format;IIZJ)V
+accessible method net/minecraft/client/texture/NativeImage checkAllocated ()V
 
 accessible field net/minecraft/client/texture/NativeImage pointer J
 accessible field net/minecraft/client/texture/NativeImage width I
