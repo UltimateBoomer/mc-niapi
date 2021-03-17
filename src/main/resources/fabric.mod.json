@@ -4,12 +4,13 @@
   "version": "${version}",
 
   "name": "NativeImage API",
-  "description": "API for NativeImage stuff",
+  "description": "Small library for NativeImage stuff",
   "authors": [
     "UltimateBoomer"
   ],
   "contact": {
-    "sources": "https://github.com/UltimateBoomer/mc-niapi"
+    "sources": "https://github.com/UltimateBoomer/mc-niapi",
+    "issues": "https://github.com/UltimateBoomer/mc-niapi/issues"
   },
 
   "license": "MIT",
@@ -26,11 +27,9 @@
   ],
   "accessWidener": "niapi.accesswidener",
   "depends": {
-    "fabricloader": ">=0.7.4",
-    "fabric": "*",
-    "minecraft": "1.16.x"
+    "fabricloader": ">=0.7.4"
   },
-  "suggests": {
-    "another-mod": "*"
+  "custom": {
+    "modmenu:api": true
   }
 }
