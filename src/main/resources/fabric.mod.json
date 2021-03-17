@@ -3,14 +3,13 @@
   "id": "niapi",
   "version": "${version}",
 
-  "name": "Example Mod",
+  "name": "NativeImage API",
   "description": "API for NativeImage stuff",
   "authors": [
     "UltimateBoomer"
   ],
   "contact": {
-    "homepage": "https://fabricmc.net/",
-    "sources": "https://github.com/FabricMC/fabric-example-mod"
+    "sources": "https://github.com/UltimateBoomer/mc-niapi"
   },
 
   "license": "MIT",
